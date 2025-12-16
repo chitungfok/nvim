@@ -8,4 +8,4 @@
 -- vim.cmd.colorscheme  'astrodark'
 -- vim.cmd.colorscheme  'catppuccin-macchiato'
 -- vim.cmd.colorscheme  'tokyonight-storm'
-vim.cmd.colorscheme 'onedark_vivid'
+vim.cmd.colorscheme("onedark_vivid")

@@ -1,94 +1,221 @@
+-- ============================================================================
+-- 插件管理 (lazy.nvim) - Neovim 0.11+
+-- ============================================================================
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-    vim.fn.system(
-        {
-            "git",
-            "clone",
-            "--filter=blob:none",
-            "https://github.com/folke/lazy.nvim.git",
-            "--branch=stable", -- latest stable release
-            lazypath
-        }
-    )
+if not vim.uv.fs_stat(lazypath) then
+    vim.fn.system({
+        "git",
+        "clone",
+        "--filter=blob:none",
+        "https://github.com/folke/lazy.nvim.git",
+        "--branch=stable",
+        lazypath,
+    })
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- ============================================================================
+-- 插件列表
+-- ============================================================================
 local plugins = {
+    -- ========================================================================
+    -- 核心依赖
+    -- ========================================================================
+    "nvim-lua/plenary.nvim",
     {
-        "kyazdani42/nvim-tree.lua",
-        dependencies = {"kyazdani42/nvim-web-devicons", "nvim-web-devicons"}
+        "nvim-tree/nvim-web-devicons",
+        lazy = false,
+        config = true,
     },
-    "windwp/nvim-autopairs",
-    {"lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {}},
-    "numToStr/Comment.nvim",
     {
-        "SmiteshP/nvim-navbuddy",
+        "echasnovski/mini.icons",
+        lazy = true,
+        opts = {},
+    },
+    {
+        "folke/which-key.nvim",
+        event = "VeryLazy",
+        dependencies = { "echasnovski/mini.icons" },
+        keys = {
+            {
+                "<leader>?",
+                function()
+                    require("which-key").show({ global = true })
+                end,
+                desc = "Keymaps (which-key)",
+            },
+        },
+        opts = {
+            delay = 300,
+            icons = {
+                mappings = true, -- 启用映射图标 (由 mini.icons 提供)
+                colors = true, -- 使用 mini.icons 的颜色高亮
+                keys = {
+                    Up = " ",
+                    Down = " ",
+                    Left = " ",
+                    Right = " ",
+                    C = "󰘴 ",
+                    M = "󰘵 ",
+                    D = "󰘳 ",
+                    S = "󰘶 ",
+                    CR = "󰌑 ",
+                    Esc = "󱊷 ",
+                    ScrollWheelDown = "󱕐 ",
+                    ScrollWheelUp = "󱕑 ",
+                    NL = "󰌑 ",
+                    BS = "󰁮",
+                    Space = "󱁐 ",
+                    Tab = "󰌒 ",
+                    F1 = "󱊫",
+                    F2 = "󱊬",
+                    F3 = "󱊭",
+                    F4 = "󱊮",
+                    F5 = "󱊯",
+                    F6 = "󱊰",
+                    F7 = "󱊱",
+                    F8 = "󱊲",
+                    F9 = "󱊳",
+                    F10 = "󱊴",
+                    F11 = "󱊵",
+                    F12 = "󱊶",
+                },
+            },
+            spec = {
+                { "<leader>b", group = "Buffer" },
+                { "<leader>c", group = "Code" },
+                { "<leader>f", group = "Find" },
+                { "<leader>g", group = "Git" },
+                { "<leader>t", group = "Test" },
+                { "<leader>x", group = "Trouble" },
+            },
+        },
+    },
+
+    -- ========================================================================
+    -- 文件导航与搜索
+    -- ========================================================================
+    {
+        "nvim-neo-tree/neo-tree.nvim",
+        branch = "v3.x",
+        cmd = "Neotree",
         dependencies = {
-            "neovim/nvim-lspconfig",
-            "SmiteshP/nvim-navic",
+            "nvim-lua/plenary.nvim",
             "MunifTanjim/nui.nvim",
-            "numToStr/Comment.nvim", -- Optional
-            "nvim-telescope/telescope.nvim" -- Optional
-        }
+            -- 文件操作增强
+            {
+                "antosha417/nvim-lsp-file-operations",
+                config = true,
+            },
+        },
+        keys = {
+            { "<leader>l", "<cmd>Neotree toggle reveal<cr>", desc = "File tree (reveal)" },
+        },
+        opts = function()
+            return require("plugins.neo-tree")
+        end,
+        config = function(_, opts)
+            -- 设置 Neo-tree 高亮（文件夹图标蓝色）
+            vim.api.nvim_set_hl(0, "NeoTreeDirectoryIcon", { fg = "#61afef" }) -- 蓝色
+            vim.api.nvim_set_hl(0, "NeoTreeDirectoryName", { fg = "#61afef" }) -- 蓝色
+            vim.api.nvim_set_hl(0, "NeoTreeIndentMarker", { fg = "#3b4261" }) -- 缩进线颜色
+            require("neo-tree").setup(opts)
+        end,
+    },
+    {
+        -- 重命名增强（支持 LSP 重命名）
+        "folke/snacks.nvim",
+        priority = 1000,
+        lazy = false,
+        opts = {
+            rename = { enabled = true },
+        },
     },
     {
         "nvim-telescope/telescope.nvim",
+        cmd = "Telescope",
         dependencies = {
-            {"nvim-lua/plenary.nvim"},
-            {"nvim-telescope/telescope-live-grep-args.nvim"},
-            {"nvim-telescope/telescope-fzf-native.nvim", build = "make"}
+            "nvim-telescope/telescope-live-grep-args.nvim",
+            {
+                "nvim-telescope/telescope-fzf-native.nvim",
+                build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release --target install",
+            },
         },
-        config = function(plugin)
+        config = function()
+            require("telescope").setup({
+                defaults = {
+                    initial_mode = "insert",
+                    mappings = require("mapping").telescope(),
+                    -- 使用 rg 进行文件内容搜索（默认配置，显式声明）
+                    vimgrep_arguments = {
+                        "rg",
+                        "--color=never",
+                        "--no-heading",
+                        "--with-filename",
+                        "--line-number",
+                        "--column",
+                        "--smart-case",
+                        "--hidden", -- 搜索隐藏文件
+                        "--glob=!.git/", -- 排除 .git 目录
+                    },
+                },
+                pickers = {
+                    find_files = {
+                        -- 使用 fd 进行文件查找（性能优于默认的 find）
+                        find_command = {
+                            "fd",
+                            "--type",
+                            "f",
+                            "--hidden", -- 包含隐藏文件
+                            "--exclude",
+                            ".git", -- 排除 .git 目录
+                            "--strip-cwd-prefix",
+                        },
+                    },
+                },
+            })
             require("telescope").load_extension("fzf")
             require("telescope").load_extension("live_grep_args")
-        end
-    },
-    {"akinsho/bufferline.nvim", version = "*", dependencies = "nvim-tree/nvim-web-devicons"},
-    {"sindrets/diffview.nvim", dependencies = "nvim-lua/plenary.nvim"},
-    "lewis6991/gitsigns.nvim",
-    {"catppuccin/nvim", name = "catppuccin"},
-    "folke/tokyonight.nvim",
-    "AstroNvim/astrotheme",
-    {
-        "olimorris/onedarkpro.nvim",
-        priority = 1000 -- Ensure it loads first
-    },
-    "neovim/nvim-lspconfig",
-    "hrsh7th/nvim-cmp", -- Autocompletion plugin
-    "hrsh7th/cmp-nvim-lsp", -- LSP source for nvim-cmp
-    "saadparwaiz1/cmp_luasnip", -- Snippets source for nvim-cmp
-    "L3MON4D3/LuaSnip", -- Snippets plugin
-    {"folke/trouble.nvim", dependencies = {"nvim-tree/nvim-web-devicons"}},
-    {
-        "simrat39/rust-tools.nvim",
-        dependencies = {
-            "neovim/nvim-lspconfig",
-            "nvim-lua/plenary.nvim",
-            "mfussenegger/nvim-dap"
-        }
+        end,
     },
     {
-        "yanskun/gotests.nvim",
-        ft = "go",
+        "SmiteshP/nvim-navbuddy",
+        dependencies = { "SmiteshP/nvim-navic", "MunifTanjim/nui.nvim" },
+        event = "LspAttach",
+    },
+
+    -- ========================================================================
+    -- 编辑增强
+    -- ========================================================================
+    {
+        "lukas-reineke/indent-blankline.nvim",
+        main = "ibl",
+        event = "BufRead",
         config = function()
-            require("gotests").setup()
-        end
+            vim.opt.list = true
+            vim.opt.listchars:append("space:⋅")
+            vim.opt.listchars:append("eol:↴")
+            require("ibl").setup()
+        end,
+    },
+    {
+        "numToStr/Comment.nvim",
+        keys = { "gcc", "gbc", { "gc", mode = "v" }, { "gb", mode = "v" } },
+        config = true,
     },
     {
         "kevinhwang91/nvim-ufo",
-        dependencies = {"kevinhwang91/promise-async"},
-        lazy = true,
-        cmd = {"UfoDisable", "UfoEnable"},
+        dependencies = { "kevinhwang91/promise-async" },
+        event = "BufRead",
         config = function()
-            vim.o.foldcolumn = "1" -- '0' is not bad
-            vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+            vim.o.foldcolumn = "1"
+            vim.o.foldlevel = 99
             vim.o.foldlevelstart = 99
             vim.o.foldenable = true
 
-            vim.cmd([[highlight AdCustomFold guifg=#bf8040]])
             local handler = function(virtText, lnum, endLnum, width, truncate)
                 local newVirtText = {}
-                local suffix = ("  %d "):format(endLnum - lnum)
+                local suffix = ("  %d "):format(endLnum - lnum)
                 local sufWidth = vim.fn.strdisplaywidth(suffix)
                 local targetWidth = width - sufWidth
                 local curWidth = 0
@@ -100,10 +227,8 @@ local plugins = {
                         table.insert(newVirtText, chunk)
                     else
                         chunkText = truncate(chunkText, targetWidth - curWidth)
-                        local hlGroup = chunk[2]
-                        table.insert(newVirtText, {chunkText, hlGroup})
+                        table.insert(newVirtText, { chunkText, chunk[2] })
                         chunkWidth = vim.fn.strdisplaywidth(chunkText)
-                        -- str width returned from truncate() may less than 2nd argument, need padding
                         if curWidth + chunkWidth < targetWidth then
                             suffix = suffix .. (" "):rep(targetWidth - curWidth - chunkWidth)
                         end
@@ -111,34 +236,128 @@ local plugins = {
                     end
                     curWidth = curWidth + chunkWidth
                 end
-
-                -- Second line
-                local lines = vim.api.nvim_buf_get_lines(0, lnum, lnum + 1, false)
-                local secondLine = nil
-                if #lines == 1 then
-                    secondLine = lines[1]
-                elseif #lines > 1 then
-                    secondLine = lines[2]
-                end
-                if secondLine ~= nil then
-                    table.insert(newVirtText, {secondLine, "AdCustomFold"})
-                end
-
-                table.insert(newVirtText, {suffix, "MoreMsg"})
-
+                table.insert(newVirtText, { suffix, "MoreMsg" })
                 return newVirtText
             end
 
-            require("ufo").setup(
-                {
-                    provider_selector = function(bufnr, filetype, buftype)
-                        return {"lsp", "indent"}
-                    end,
-                    fold_virt_text_handler = handler
-                }
-            )
-        end
-    }
+            require("ufo").setup({
+                provider_selector = function()
+                    return { "lsp", "indent" }
+                end,
+                fold_virt_text_handler = handler,
+            })
+        end,
+    },
+
+    -- ========================================================================
+    -- UI 增强
+    -- ========================================================================
+    {
+        "nvim-lualine/lualine.nvim",
+        event = "VeryLazy",
+        dependencies = { "nvim-tree/nvim-web-devicons" },
+        opts = function()
+            return require("plugins.lualine")
+        end,
+    },
+    {
+        "akinsho/bufferline.nvim",
+        version = "*",
+        event = "BufAdd",
+        opts = {
+            options = {
+                diagnostics = "nvim_lsp",
+                offsets = {
+                    { filetype = "neo-tree", text = "File Explorer", highlight = "Directory", text_align = "left" },
+                },
+            },
+        },
+    },
+    {
+        "folke/trouble.nvim",
+        cmd = "Trouble",
+        opts = {
+            defaults = { focus = true },
+            modes = {
+                symbols = {
+                    win = {
+                        size = 50,
+                        wo = {
+                            wrap = true,
+                        },
+                    },
+                    format = "{kind_icon} {symbol.name}",
+                },
+            },
+        },
+    },
+
+    -- ========================================================================
+    -- Git 集成
+    -- ========================================================================
+    {
+        "lewis6991/gitsigns.nvim",
+        event = "BufRead",
+        opts = {
+            signcolumn = true,
+            numhl = true,
+            current_line_blame = true,
+        },
+    },
+
+    -- ========================================================================
+    -- 补全 (blink.cmp - 高性能补全引擎)
+    -- ========================================================================
+    {
+        "saghen/blink.cmp",
+        version = "1.*",
+        event = "InsertEnter",
+        config = function()
+            require("plugins.cmp")
+        end,
+    },
+
+    -- ========================================================================
+    -- 语言支持
+    -- ========================================================================
+    {
+        "yanskun/gotests.nvim",
+        ft = "go",
+        config = true,
+    },
+
+    -- ========================================================================
+    -- 主题
+    -- ========================================================================
+    {
+        "olimorris/onedarkpro.nvim",
+        lazy = false,
+        priority = 1000,
+    },
 }
 
-return require("lazy").setup(plugins)
+-- ============================================================================
+-- lazy.nvim 配置
+-- ============================================================================
+return require("lazy").setup(plugins, {
+    defaults = {
+        lazy = true, -- 默认延迟加载
+    },
+    performance = {
+        cache = {
+            enabled = true,
+        },
+        rtp = {
+            disabled_plugins = {
+                "gzip",
+                "matchit",
+                "matchparen",
+                "netrwPlugin",
+                "tarPlugin",
+                "tohtml",
+                "tutor",
+                "zipPlugin",
+            },
+        },
+    },
+})
