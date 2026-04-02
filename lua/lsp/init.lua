@@ -9,6 +9,7 @@ require("lsp.clangd")
 require("lsp.gopls")
 require("lsp.golangci-lint")
 require("lsp.rust")
+require("lsp.lua_ls")
 
 -- 3. 导出公共模块供其他地方使用
 return common

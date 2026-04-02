@@ -82,6 +82,7 @@ local plugins = {
                 },
             },
             spec = {
+                { "<leader>a", group = "AI" },
                 { "<leader>b", group = "Buffer" },
                 { "<leader>c", group = "Code" },
                 { "<leader>f", group = "Find" },
@@ -314,6 +315,28 @@ local plugins = {
         event = "InsertEnter",
         config = function()
             require("plugins.cmp")
+        end,
+    },
+    {
+        "saghen/blink.pairs",
+        version = "*",
+        event = "InsertEnter",
+        dependencies = "saghen/blink.download",
+        opts = {
+            mappings = { enabled = true },
+            highlights = { enabled = true },
+        },
+    },
+
+    -- ========================================================================
+    -- AI 补全 (Minuet - DeepSeek Virtual Text)
+    -- ========================================================================
+    {
+        "milanglacier/minuet-ai.nvim",
+        dependencies = { "nvim-lua/plenary.nvim" },
+        event = "InsertEnter",
+        config = function()
+            require("minuet").setup(require("plugins.minuet").opts)
         end,
     },
 

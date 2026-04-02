@@ -37,7 +37,7 @@ return {
             },
             "encoding",
             { "fileformat", icons_enabled = true },
-            { "filetype", icon_only = false },
+            { "filetype",   icon_only = false },
         },
         lualine_y = { "progress" },
         lualine_z = { "location" },

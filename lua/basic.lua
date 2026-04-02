@@ -40,6 +40,27 @@ vim.opt.writebackup = false
 vim.opt.swapfile = false
 vim.opt.undofile = true
 
+-- 外部文件变化自动重载
+-- autoread 只是基础设置，需要配合 autocmd 主动触发检查
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
+    pattern = "*",
+    callback = function()
+        if vim.fn.mode() ~= "c" then
+            vim.cmd("checktime")
+        end
+    end,
+    desc = "Check if file changed externally",
+})
+
+-- 文件被外部修改后显示提示信息
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+    pattern = "*",
+    callback = function()
+        vim.notify("文件已被外部修改并重新加载", vim.log.levels.WARN)
+    end,
+    desc = "Notify when file reloaded",
+})
+
 -- 其他
 vim.opt.mouse = ""
 vim.opt.syntax = "enable"

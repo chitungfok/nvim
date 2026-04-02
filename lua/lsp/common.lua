@@ -6,16 +6,26 @@ local M = {}
 -- ============================================================================
 -- 全局 LSP 默认配置 (应用于所有 LSP 服务器)
 -- ============================================================================
-vim.lsp.config("*", {
-    root_markers = { ".git" },
-    capabilities = {
-        textDocument = {
-            foldingRange = {
-                dynamicRegistration = false,
-                lineFoldingOnly = true,
+-- 自定义 capabilities (会与 blink.cmp 合并)
+M.custom_capabilities = {
+    textDocument = {
+        -- 折叠支持 (nvim-ufo 等插件需要)
+        foldingRange = {
+            dynamicRegistration = false,
+            lineFoldingOnly = true,
+        },
+        -- 禁用 snippet，补全函数时不插入参数占位符
+        completion = {
+            completionItem = {
+                snippetSupport = false,
             },
         },
     },
+}
+
+vim.lsp.config("*", {
+    root_markers = { ".git" },
+    capabilities = M.custom_capabilities,
 })
 
 -- ============================================================================
@@ -129,7 +139,9 @@ M.format_on_save = function(pattern, organize_imports)
         callback = function(args)
             -- Go 特殊处理: organize imports
             if organize_imports then
-                local params = vim.lsp.util.make_range_params()
+                local clients = vim.lsp.get_clients({ bufnr = args.buf })
+                local encoding = clients[1] and clients[1].offset_encoding or "utf-16"
+                local params = vim.lsp.util.make_range_params(0, encoding)
                 params.context = { only = { "source.organizeImports" } }
                 local result = vim.lsp.buf_request_sync(0, "textDocument/codeAction", params, 800)
                 for cid, res in pairs(result or {}) do

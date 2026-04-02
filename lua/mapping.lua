@@ -21,6 +21,7 @@
 --   <leader>t*     - 测试 (Test) - Go 测试生成
 --   <leader>1-9    - 快速跳转 Buffer
 --   <leader>?      - Which-key 帮助
+--   <leader>a*     - AI 补全 (Minuet)
 --   gd/gr/gi/gD    - LSP 跳转 - 见 lsp/common.lua
 --   gt/gT          - Tab 切换 (Vim 原生)
 --   z*             - 代码折叠 (nvim-ufo): zR/zM/zr/zm/zK
@@ -131,6 +132,20 @@ end, { desc = "Generate test for function" })
 vim.keymap.set("n", "<leader>ta", function()
     require("gotests").generate_all()
 end, { desc = "Generate tests for all functions" })
+
+-- ============================================================================
+-- AI 补全 (Minuet Virtual Text) - <leader>a (AI)
+-- ============================================================================
+-- Virtual Text 按键 (由 minuet 配置):
+--   Tab     - 接受全部补全
+--   C-l     - 接受一行
+--   C-n/C-p - 切换补全项
+--   C-]     - 取消补全
+
+-- AI 补全开关
+vim.keymap.set("n", "<leader>at", function()
+    vim.cmd("Minuet virtualtext toggle")
+end, { desc = "Toggle AI completion" })
 
 -- ============================================================================
 -- Buffer 管理 (Bufferline) - <leader>b 和 <leader>1-9

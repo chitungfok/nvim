@@ -5,25 +5,28 @@
 -- - 内置 LSP、path、buffer、snippets 源
 -- - 使用 Neovim 0.10+ 原生 vim.snippet API
 -- - Rust 编写的模糊匹配，性能更好
+-- - AI 补全由 Minuet Virtual Text 提供 (Tab 接受)
 -- ============================================================================
+
+-- 合并 blink.cmp capabilities 与 lsp/common.lua 中的自定义配置
+local custom_caps = require("lsp.common").custom_capabilities
+vim.lsp.config("*", {
+    capabilities = require("blink.cmp").get_lsp_capabilities(custom_caps),
+})
 
 require("blink.cmp").setup({
     -- ========================================================================
-    -- 键位映射
+    -- 键位映射 (Tab 让给 Minuet Virtual Text)
     -- ========================================================================
     keymap = {
         preset = "none",
         ["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
         ["<C-e>"] = { "cancel", "fallback" },
         ["<CR>"] = { "accept", "fallback" },
-        ["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
-        ["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
         ["<Down>"] = { "select_next", "fallback" },
         ["<Up>"] = { "select_prev", "fallback" },
         ["<C-j>"] = { "select_next", "fallback" },
         ["<C-k>"] = { "select_prev", "fallback" },
-        ["<C-n>"] = { "select_next", "fallback" },
-        ["<C-p>"] = { "select_prev", "fallback" },
         ["<C-d>"] = { "scroll_documentation_down", "fallback" },
         ["<C-u>"] = { "scroll_documentation_up", "fallback" },
     },
@@ -34,16 +37,9 @@ require("blink.cmp").setup({
     sources = {
         default = { "lsp", "path", "buffer" },
         providers = {
-            lsp = {
-                score_offset = 10, -- LSP 优先
-            },
-            path = {
-                score_offset = 5,
-            },
-            buffer = {
-                score_offset = -3,
-                min_keyword_length = 3,
-            },
+            lsp = { score_offset = 10 },
+            path = { score_offset = 5 },
+            buffer = { score_offset = -3, min_keyword_length = 3 },
         },
     },
 
@@ -51,18 +47,16 @@ require("blink.cmp").setup({
     -- 补全菜单外观
     -- ========================================================================
     completion = {
+        accept = { auto_brackets = { enabled = true } },
         list = {
-            selection = {
-                preselect = true,
-                auto_insert = false,
-            },
+            selection = { preselect = true, auto_insert = false },
         },
         menu = {
             border = "rounded",
             draw = {
                 columns = {
                     { "kind_icon" },
-                    { "label", "label_description", gap = 1 },
+                    { "label",    "label_description", gap = 1 },
                 },
                 treesitter = { "lsp" },
             },
@@ -70,13 +64,9 @@ require("blink.cmp").setup({
         documentation = {
             auto_show = true,
             auto_show_delay_ms = 200,
-            window = {
-                border = "rounded",
-            },
+            window = { border = "rounded" },
         },
-        ghost_text = {
-            enabled = false,
-        },
+        ghost_text = { enabled = false },
     },
 
     -- ========================================================================
@@ -84,9 +74,7 @@ require("blink.cmp").setup({
     -- ========================================================================
     signature = {
         enabled = true,
-        window = {
-            border = "rounded",
-        },
+        window = { border = "rounded" },
     },
 
     -- ========================================================================
