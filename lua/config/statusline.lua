@@ -1,12 +1,10 @@
--- ============================================================================
--- Lualine 状态栏配置
--- 主题: 自动匹配 onedark_vivid
--- ============================================================================
+local ai = require("config.ai")
+ai.setup_status()
 
 return {
     options = {
         theme = "onedark",
-        globalstatus = true, -- 全局状态栏 (Neovim 0.7+)
+        globalstatus = true,
         component_separators = { left = "", right = "" },
         section_separators = { left = "", right = "" },
         disabled_filetypes = {
@@ -25,11 +23,12 @@ return {
         lualine_c = {
             {
                 "filename",
-                path = 1, -- 相对路径
+                path = 1,
                 symbols = { modified = " ●", readonly = " ", unnamed = "[No Name]" },
             },
         },
         lualine_x = {
+            { ai.indicator, color = { gui = "bold" } },
             {
                 "diagnostics",
                 sources = { "nvim_lsp" },
@@ -37,7 +36,7 @@ return {
             },
             "encoding",
             { "fileformat", icons_enabled = true },
-            { "filetype",   icon_only = false },
+            { "filetype", icon_only = false },
         },
         lualine_y = { "progress" },
         lualine_z = { "location" },
