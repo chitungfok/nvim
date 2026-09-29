@@ -1,450 +1,77 @@
-# Neovim Configuration
+# Neovim 配置
 
-基于 Lua 的个人 Neovim 配置，适用于 **Neovim 0.11+**，采用原生 LSP API 和延迟加载策略。
+面向 Go、Rust、C/C++ 和 Lua 开发的个人配置，需要 Neovim 0.12 或更新版本。文件侧栏用 Neo-tree，搜索用 Telescope，普通补全用 Blink；Minuet 提供 AI 行内续写和下一处编辑预测。
 
-## 目录
+先运行 `:checkhealth config` 检查本机依赖。查按键用 `:Keymaps`，配置模型和密钥看 [AI 服务设置](docs/ai.md)。
 
-- [特性](#特性)
-- [系统要求](#系统要求)
-- [安装](#安装)
-- [目录结构](#目录结构)
-- [按键映射](#按键映射)
-- [插件列表](#插件列表)
-- [LSP 配置](#lsp-配置)
-- [自定义配置](#自定义配置)
+## 开始使用
 
-## 特性
+1. 准备 Neovim 0.12+、Git、ripgrep、curl、make 和 C 编译器。终端字体选 Nerd Font；`fd` 或 `fdfind` 可选，未安装时用 ripgrep 查找文件。
+2. 在这套配置已放入 Neovim 配置目录的机器上运行 `nvim`，等待 lazy.nvim 安装插件。Blink Pairs 首次安装需要下载原生库。
+3. 执行 `:Lazy restore`，将插件版本对齐到仓库的 `lazy-lock.json`。
+4. 执行 `:checkhealth config`，按提示安装所需语言工具并加入 `PATH`，然后重启 Neovim。
+5. 打开代码文件，按 `Space ff` 查找文件、`Space fg` 搜索项目文本，或按 `Space ?` 查看快捷键。
 
-| 特性 | 说明 |
-|------|------|
-| **延迟加载** | 基于 lazy.nvim，所有插件默认延迟加载 |
-| **原生 LSP** | 使用 Neovim 0.11 内置 `vim.lsp.config` / `vim.lsp.enable` API |
-| **高性能补全** | blink.cmp 补全引擎，Rust 编写的模糊匹配算法 |
-| **人体工学键位** | 以 `<Space>` 为 Leader，分组清晰的快捷键布局 |
-| **现代化文件管理** | Neo-tree 文件树，支持 Git 状态、LSP 诊断、多源切换 |
-| **代码折叠增强** | nvim-ufo 提供基于 LSP 的智能折叠 |
+`Space` 是 Leader。例如 `Space ff` 要依次按空格、f、f。编辑仍按 Normal、Insert、Visual 模式操作，完整按键见 [快捷键](docs/keymaps.md)。
 
-## 系统要求
+## AI 自动续写
 
-### 必需
+已在终端设置 `DEEPSEEK_API_KEY` 时，用下面的命令启动：
 
-| 组件 | 版本/说明 |
-|------|----------|
-| Neovim | >= 0.11 |
-| Git | 用于插件管理 |
-| [Nerd Font](https://www.nerdfonts.com/) | 终端字体，用于图标显示 |
-| ripgrep | Telescope 文本搜索后端 |
-| fd | Telescope 文件查找后端 |
-| cmake | 编译 telescope-fzf-native |
-
-### 可选
-
-| 组件 | 用途 |
-|------|------|
-| Rust/Cargo | 编译 blink.cmp（通常自动完成） |
-
-### 依赖安装
-
-**macOS (Homebrew)**
-
-```bash
-brew install neovim ripgrep fd cmake
-
-# Nerd Font
-brew tap homebrew/cask-fonts
-brew install --cask font-hack-nerd-font
+```sh
+NVIM_AI_PROVIDER=deepseek nvim
 ```
 
-**Ubuntu/Debian**
+默认预设是 DeepSeek 官方接口和 `deepseek-flash`，开启思考模式，推理强度为 `low`。配置也提供 SiliconFlow、OpenCode Zen/Go、OpenAI 预设，并支持自定义 Chat Completions 接口。服务、模型和参数以 [AI 服务设置](docs/ai.md) 为准。
 
-```bash
-# Neovim 0.11+ 需从 PPA 或源码安装
-sudo apt install ripgrep fd-find cmake
+在代码文件中进入 Insert 模式，紫色行内文字就是 AI 建议。按 `Tab` 接受全部，`Ctrl-y` 接受一行，`Ctrl-e` 取消；手动请求用 `Ctrl-g n`，先按 Ctrl-g，松开后再按 n。Blink 菜单中的 `[LSP]`、`[路径]`、`[片段]` 和 `[缓冲区]` 标注普通补全来源，未设置 AI 密钥时仍可使用。
 
-# fd-find 在 Debian/Ubuntu 中命令为 fdfind，需创建符号链接
-ln -s $(which fdfind) ~/.local/bin/fd
+Tab 优先接受可见的 AI 建议，再处理 Blink 菜单、snippet 占位符和缩进。没有活动 snippet 时，它会选择并接受菜单项；处于 snippet 中时，只接受已选中的菜单项，否则跳到下一占位符。Enter 接受手动选中的菜单项，没有选中项就换行。
+
+下一处编辑预测默认手动触发：Normal 模式下按 `Space ap` 请求，出现增删预览后按 `Space aa` 接受，或 `Space ad` 取消。初次使用和排错步骤见 [续写与编辑预测](docs/ai.md#续写与编辑预测)。
+
+## 语言工具
+
+语言服务从 `PATH` 查找，配置不会代为安装。按实际使用的语言准备工具即可。
+
+| 语言 | 所需工具 | 配置行为 |
+| --- | --- | --- |
+| Go | `gopls` | 保存时整理 imports 并格式化；启用 gofumpt、staticcheck 和类型提示相关设置；`Space tt` 为当前函数生成测试 |
+| Go lint | `golangci-lint-langserver`、`golangci-lint` v2 | 使用项目的 lint 配置，通过语言服务显示诊断 |
+| Rust | `rust-analyzer`、Rust 工具链和 Clippy | 保存格式化，使用 Clippy 检查，启用过程宏与类型提示相关设置 |
+| C/C++ | `clangd`、项目编译数据库 | 启用后台索引和 clang-tidy，编译数据库目录设为 `build` |
+| Lua | `lua-language-server` | 识别 Neovim runtime 和 `vim` 全局变量 |
+
+语言服务连接后，`gd` 跳到定义，`gr` 查看引用，`K` 查看文档。`Space cf` 手动格式化；支持类型提示的服务可用 `Space ch` 切换显示。
+
+要增加语言服务，在 `lsp/` 新建返回配置表的 Lua 文件，再把服务名和文件类型加入 [lua/config/lsp.lua](lua/config/lsp.lua)。配置通过 Neovim 原生的 `vim.lsp.config` 和 `vim.lsp.enable` 加载，规则见 [Neovim LSP 文档](https://neovim.io/doc/user/lsp/)。
+
+## 看代码结构
+
+`Space cn` 打开 Trouble 符号树，`Space cs` 搜索当前文档的符号。将光标放在函数声明的名称上，按 `Space ci` 查看谁调用它，`Space co` 查看它调用谁。调用树默认展开三层，可用 `l/h` 继续展开或收起；其余操作见 [递归调用树](docs/keymaps.md#递归调用树)。
+
+折叠优先使用 LSP 提供的范围，没有可用服务时按缩进计算。文件初始全部展开。`za` 切换当前折叠，`zR/zM` 展开或收起全部；`zK` 预览已收起的内容，再按一次进入浮窗。光标处没有收起的折叠时，`zK` 显示 LSP 文档。
+
+注释使用 Neovim 原生操作：`gcc` 注释当前行，Visual 模式下 `gc` 注释所选行，`gcip` 注释当前段落。Go 文件中的 `Space tt` 调用 gopls 的 `source.addTest` 生成当前函数测试，需要 gopls 支持该操作。
+
+## 修改与维护
+
+| 路径 | 内容 |
+| --- | --- |
+| [init.lua](init.lua) | 版本检查与启动入口 |
+| [lua/config/](lua/config/) | 编辑选项、按键、LSP、AI 和插件设置 |
+| [lua/plugins/](lua/plugins/) | 按补全、编辑、Git、导航、界面分组的插件声明 |
+| [lsp/](lsp/) | 各语言服务的启动参数与设置 |
+| [lazy-lock.json](lazy-lock.json) | 22 个插件仓库的锁定版本，包含管理器和依赖 |
+
+换机器时一并复制 `lazy-lock.json`。`:Lazy restore` 恢复锁定版本；用 `:Lazy` 更新插件后，把锁文件的变化一起纳入版本管理。具体行为见 [lazy.nvim 锁文件说明](https://lazy.folke.io/usage/lockfile)。
+
+安装 StyLua 后，在配置根目录检查 Lua 格式：
+
+```sh
+stylua --check init.lua lua/config lua/plugins lsp
 ```
 
-**Arch Linux**
+从旧配置迁移后，先重启 Neovim，在 `:Lazy` 中核对不再使用的插件，再按需执行 `:Lazy clean`。注释和折叠已改用原生功能，原来的 `gb/gbc` 块注释、`gco/gcO/gcA` 插入注释和 `Space ta` 整文件测试生成入口已移除。Flash 文本跳转可直接使用，语法树选择需要对应语言的 Tree-sitter parser。
 
-```bash
-sudo pacman -S neovim ripgrep fd cmake
-```
-
-## 安装
-
-### 步骤 1: 备份现有配置
-
-```bash
-mv ~/.config/nvim ~/.config/nvim.bak
-mv ~/.local/share/nvim ~/.local/share/nvim.bak
-```
-
-### 步骤 2: 克隆配置
-
-```bash
-git clone <repository-url> ~/.config/nvim
-```
-
-### 步骤 3: 启动 Neovim
-
-首次启动时，lazy.nvim 将自动安装所有插件。
-
-```bash
-nvim
-```
-
-### 步骤 4: 安装 LSP 服务器
-
-根据开发语言安装对应的 LSP 服务器：
-
-**Go**
-
-```bash
-go install golang.org/x/tools/gopls@latest
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-go install github.com/nametake/golangci-lint-langserver@latest
-```
-
-**Rust**
-
-```bash
-rustup component add rust-analyzer
-```
-
-**C/C++**
-
-```bash
-# Ubuntu/Debian
-sudo apt install clangd
-
-# Arch Linux
-sudo pacman -S clang
-
-# macOS
-brew install llvm
-```
-
-### 故障排除
-
-**blink.cmp 下载失败**
-
-若预编译二进制文件下载失败，手动编译：
-
-```bash
-cd ~/.local/share/nvim/lazy/blink.cmp
-cargo build --release
-cp target/release/libblink_cmp_fuzzy.so lua/
-```
-
-## 目录结构
-
-```
-~/.config/nvim/
-├── init.lua                    # 入口文件
-├── README.md                   # 本文档
-└── lua/
-    ├── basic.lua               # 基础设置 (编码、缩进、搜索等)
-    ├── mapping.lua             # 全局按键映射
-    ├── plugin.lua              # lazy.nvim 插件定义
-    ├── colorscheme.lua         # 主题配置
-    ├── keymaps-reference.lua   # 按键映射参考文档
-    ├── plugins/                # 插件专属配置
-    │   ├── cmp.lua             # blink.cmp 补全配置
-    │   ├── neo-tree.lua        # Neo-tree 文件管理器配置
-    │   └── lualine.lua         # 状态栏配置
-    └── lsp/                    # LSP 配置 (Neovim 0.11 API)
-        ├── init.lua            # LSP 加载入口
-        ├── common.lua          # 公共配置 + LspAttach + 诊断
-        ├── clangd.lua          # C/C++
-        ├── gopls.lua           # Go
-        ├── golangci-lint.lua   # Go Lint
-        └── rust.lua            # Rust
-```
-
-## 按键映射
-
-**Leader 键**: `<Space>`
-
-### 查看帮助
-
-| 方式 | 说明 |
-|------|------|
-| `<leader>?` | 显示 which-key 全局帮助 |
-| `:Keymaps` | 打开按键映射参考文档 |
-| `?` | Neo-tree / Trouble 窗口内显示帮助 |
-| `<C-/>` | Telescope 窗口内显示帮助 (Insert 模式) |
-
-### 按键分组概览
-
-| 前缀 | 功能组 |
-|------|--------|
-| `<leader>w/q/d` | 基础操作 (保存/退出/关闭) |
-| `<leader>l` | 文件树 |
-| `<leader>f*` | 搜索 (Find) |
-| `<leader>b*` | Buffer 管理 |
-| `<leader>c*` | 代码操作 (Code/LSP) |
-| `<leader>g*` | Git 操作 |
-| `<leader>x*` | 诊断面板 (Trouble) |
-| `<leader>t*` | 测试 (Test) |
-| `<leader>1-9` | Buffer 快速跳转 |
-| `z*` | 代码折叠 |
-| `g*` | LSP 跳转 |
-
-### 基础操作
-
-| 按键 | 模式 | 功能 |
-|------|------|------|
-| `<leader>w` | Normal | 保存文件 |
-| `<leader>q` | Normal | 退出 |
-| `<leader>d` | Normal | 关闭当前 Buffer (自动保存) |
-| `<C-c>` | Visual | 复制到系统剪贴板 |
-| `<C-v>` | Visual | 从系统剪贴板粘贴 |
-
-### 窗口导航
-
-| 按键 | 功能 |
-|------|------|
-| `<C-h>` | 跳转到左侧窗口 |
-| `<C-j>` | 跳转到下方窗口 |
-| `<C-k>` | 跳转到上方窗口 |
-| `<C-l>` | 跳转到右侧窗口 |
-
-### 搜索 (Telescope)
-
-| 按键 | 功能 |
-|------|------|
-| `<leader>ff` | 搜索文件 |
-| `<leader>fg` | 全局文本搜索 (ripgrep) |
-| `<leader>fb` | 搜索 Buffer |
-| `<leader>ft` | 搜索 Tags |
-| `<leader>/` | 当前 Buffer 内搜索 |
-
-### Buffer 管理
-
-| 按键 | 功能 |
-|------|------|
-| `<leader>1-9` | 跳转到第 1-9 个 Buffer |
-| `<leader>bp` | 上一个 Buffer |
-| `<leader>bn` | 下一个 Buffer |
-| `<leader>bh` | 将当前 Buffer 左移 |
-| `<leader>bl` | 将当前 Buffer 右移 |
-
-### Git 操作
-
-| 按键 | 功能 |
-|------|------|
-| `]h` / `[h` | 下一个/上一个 Git hunk |
-| `<leader>gd` | 查看 diff |
-| `<leader>gp` | 预览 hunk |
-| `<leader>gr` | 重置 hunk |
-| `<leader>gs` | 暂存 hunk |
-
-### LSP 操作
-
-| 按键 | 功能 |
-|------|------|
-| `K` | 显示悬浮文档 |
-| `gd` | 跳转到定义 |
-| `gD` | 跳转到声明 |
-| `gr` | 查看引用 |
-| `gi` | 查看实现 |
-| `]d` / `[d` | 下一个/上一个诊断 |
-| `<leader>cr` | 重命名符号 |
-| `<leader>ca` | 代码操作 |
-| `<leader>cf` | 格式化代码 |
-| `<leader>cs` | 文档符号列表 |
-| `<leader>ch` | 切换 Inlay Hints |
-| `<leader>cn` | 打开 Navbuddy 代码导航 |
-
-### 诊断面板 (Trouble)
-
-| 按键 | 功能 |
-|------|------|
-| `<leader>xx` | 切换诊断面板 |
-| `<leader>xs` | 符号面板 |
-| `<leader>xq` | Quickfix 列表 |
-| `<leader>xl` | Location 列表 |
-
-### 代码折叠
-
-| 按键 | 功能 |
-|------|------|
-| `zR` | 打开所有折叠 |
-| `zM` | 关闭所有折叠 |
-| `zr` | 减少折叠级别 |
-| `zm` | 增加折叠级别 |
-| `zK` | 预览折叠内容 |
-
-### 测试 (Go)
-
-| 按键 | 功能 |
-|------|------|
-| `<leader>tt` | 为当前函数生成测试 |
-| `<leader>ta` | 为所有函数生成测试 |
-
-### 注释
-
-| 按键 | 模式 | 功能 |
-|------|------|------|
-| `gcc` | Normal | 切换行注释 |
-| `gbc` | Normal | 切换块注释 |
-| `gc` | Visual | 切换选中行注释 |
-| `gb` | Visual | 切换选中块注释 |
-
-## 插件列表
-
-### 核心依赖
-
-| 插件 | 功能 |
-|------|------|
-| [lazy.nvim](https://github.com/folke/lazy.nvim) | 插件管理器 |
-| [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) | Lua 工具库 |
-| [nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons) | 文件图标 |
-| [mini.icons](https://github.com/echasnovski/mini.icons) | 图标支持 |
-| [which-key.nvim](https://github.com/folke/which-key.nvim) | 按键提示 |
-
-### 文件导航与搜索
-
-| 插件 | 功能 |
-|------|------|
-| [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim) | 文件树 (多源支持) |
-| [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | 模糊搜索 |
-| [telescope-fzf-native.nvim](https://github.com/nvim-telescope/telescope-fzf-native.nvim) | FZF 排序算法 |
-| [telescope-live-grep-args.nvim](https://github.com/nvim-telescope/telescope-live-grep-args.nvim) | 增强文本搜索 |
-| [nvim-navbuddy](https://github.com/SmiteshP/nvim-navbuddy) | 代码符号导航 |
-| [snacks.nvim](https://github.com/folke/snacks.nvim) | 智能重命名 |
-
-### 编辑增强
-
-| 插件 | 功能 |
-|------|------|
-| [Comment.nvim](https://github.com/numToStr/Comment.nvim) | 快速注释 |
-| [indent-blankline.nvim](https://github.com/lukas-reineke/indent-blankline.nvim) | 缩进可视化 |
-| [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo) | 代码折叠增强 |
-
-### UI 增强
-
-| 插件 | 功能 |
-|------|------|
-| [lualine.nvim](https://github.com/nvim-lualine/lualine.nvim) | 状态栏 |
-| [bufferline.nvim](https://github.com/akinsho/bufferline.nvim) | Buffer 标签栏 |
-| [trouble.nvim](https://github.com/folke/trouble.nvim) | 诊断面板 |
-
-### Git 集成
-
-| 插件 | 功能 |
-|------|------|
-| [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim) | Git 状态标记、行内 Blame |
-
-### 补全
-
-| 插件 | 功能 |
-|------|------|
-| [blink.cmp](https://github.com/saghen/blink.cmp) | 高性能补全 (内置 LSP/Path/Buffer 源) |
-
-### 语言支持
-
-| 插件 | 功能 |
-|------|------|
-| [gotests.nvim](https://github.com/yanskun/gotests.nvim) | Go 测试生成 |
-
-### 主题
-
-| 插件 | 状态 |
-|------|------|
-| [onedarkpro.nvim](https://github.com/olimorris/onedarkpro.nvim) | 当前使用 (onedark_vivid) |
-
-## LSP 配置
-
-本配置使用 **Neovim 0.11 原生 LSP API**，无需 mason.nvim 或 nvim-lspconfig。
-
-### 配置方式
-
-```lua
--- 全局默认配置 (lua/lsp/common.lua)
-vim.lsp.config('*', {
-    root_markers = { '.git' },
-    capabilities = { ... },
-})
-
--- 语言特定配置 (lua/lsp/gopls.lua)
-vim.lsp.config('gopls', {
-    cmd = { "gopls", "serve" },
-    filetypes = { "go", "gomod", "gowork", "gotmpl" },
-    root_markers = { "go.work", "go.mod", ".git" },
-    settings = { ... },
-})
-vim.lsp.enable('gopls')
-```
-
-### 支持的语言
-
-| 语言 | LSP 服务器 | 特性 |
-|------|-----------|------|
-| Go | gopls | gofumpt 格式化、语义 token、staticcheck、自动 organize imports |
-| Go (Lint) | golangci-lint-langserver | 读取项目 .golangci.yml 配置 |
-| C/C++ | clangd | clang-tidy、后台索引 |
-| Rust | rust-analyzer | Clippy 诊断、过程宏支持 |
-
-### LSP 特性
-
-- **统一事件处理**: 所有 LSP 按键映射在 `LspAttach` 事件中集中配置
-- **Inlay Hints**: 默认关闭，使用 `<leader>ch` 切换
-- **保存时格式化**: Go 文件保存时自动整理 imports 并格式化
-- **Navbuddy 集成**: 仅附加到支持 `documentSymbol` 的服务器
-
-### 诊断显示
-
-```
- Error   Warning   Info  󰌵 Hint
-```
-
-诊断信息显示在行尾虚拟文本中，使用 `●` 前缀标识。
-
-## 自定义配置
-
-### 添加新的 LSP 服务器
-
-在 `lua/lsp/` 目录下创建新文件，例如 `lua/lsp/pyright.lua`：
-
-```lua
-vim.lsp.config('pyright', {
-    cmd = { "pyright-langserver", "--stdio" },
-    filetypes = { "python" },
-    root_markers = { "pyproject.toml", "setup.py", ".git" },
-    settings = {
-        python = {
-            analysis = {
-                autoSearchPaths = true,
-                useLibraryCodeForTypes = true,
-            },
-        },
-    },
-})
-vim.lsp.enable('pyright')
-```
-
-然后在 `lua/lsp/init.lua` 中引入：
-
-```lua
-require("lsp.pyright")
-```
-
-### 修改主题
-
-编辑 `lua/colorscheme.lua`：
-
-```lua
-vim.cmd.colorscheme("onedark_vivid")  -- 当前主题
--- vim.cmd.colorscheme("tokyonight-storm")
--- vim.cmd.colorscheme("catppuccin-macchiato")
-```
-
-### 调整按键映射
-
-全局按键映射位于 `lua/mapping.lua`。LSP 相关按键映射位于 `lua/lsp/common.lua` 的 `LspAttach` 回调中。
-
-## 许可证
-
-MIT License
+全局按键以 Space 为前缀，Normal 模式保留 `Ctrl-v`、`s/S`、`f/F/t/T` 和 `Ctrl-i` 的原有行为。若某个按键无效，先用 `Space fk` 查映射，再检查终端或桌面环境是否拦截了输入。
