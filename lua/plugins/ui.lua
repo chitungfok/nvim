@@ -130,11 +130,8 @@ return {
             { "<leader>xq", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix 列表" },
             { "<leader>xl", "<cmd>Trouble loclist toggle<cr>", desc = "Location 列表" },
         },
-        opts = {
-            focus = true,
-            modes = {
-                symbols = { win = { size = 50, wo = { wrap = true } }, format = "{kind_icon} {symbol.name}" },
-            },
-        },
+        opts = function()
+            return require("config.trouble")
+        end,
     },
 }

@@ -25,7 +25,14 @@ function M.setup()
         or { "rg", "--files", "--hidden", "--glob", "!.git" }
     require("telescope").setup({
         defaults = {
-            mappings = { i = maps },
+            mappings = {
+                i = maps,
+                n = {
+                    ["<CR>"] = actions.select_default,
+                    ["o"] = actions.select_default,
+                    ["P"] = require("telescope.actions.layout").toggle_preview,
+                },
+            },
             vimgrep_arguments = {
                 "rg",
                 "--color=never",

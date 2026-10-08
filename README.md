@@ -14,6 +14,8 @@
 
 `Space` 是 Leader。例如 `Space ff` 要依次按空格、f、f。编辑仍按 Normal、Insert、Visual 模式操作，完整按键见 [快捷键](docs/keymaps.md)。
 
+在 Telescope 搜索、调用树和 Trouble 面板中，Enter 与 Normal 模式的 `o` 都会打开目标并关闭面板；分组只切换展开状态。`P` 切换预览，树形面板用 `h/l` 收起或展开节点。Neo-tree 保留原有按键和侧栏行为。
+
 ## AI 自动续写
 
 已在终端设置 `DEEPSEEK_API_KEY` 时，用下面的命令启动：
